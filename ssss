@@ -39,7 +39,7 @@ class encn_Cambridge {
     }
 
     async findCambridge(word) {
-        // helper function to extract data for Cambridge dictionary
+        // Hàm xây dựng phần định nghĩa cho Cambridge
         function buildDefinitionBlock(exp, pos, defs) {
             if (!defs || !Array.isArray(defs) || defs.length < 0) return '';
             let definition = '';
@@ -80,62 +80,10 @@ class encn_Cambridge {
         let data = '';
         try {
             data = JSON.parse(await api.fetch(dicturl));
-            let cambridge = getCambridge(data);
-            let bdsimple = cambridge.length ? [] : getBDSimple(data); // Combine Youdao Concise English-Chinese Dictionary to the end.
-            let bstrans = cambridge.length || bdsimple.length ? [] : getBDTrans(data); // Combine Youdao Translation (if any) to the end.
-            return [].concat(cambridge, bdsimple, bstrans);
-
+            let cambridge = getCambridge(data);  // Lấy từ Cambridge
+            return cambridge;
         } catch (err) {
             return [];
-        }
-
-        function getBDTrans(data) {
-            try {
-                if (data.dict_result && data.dict_result.length != 0) return [];
-                if (!data.trans_result || data.trans_result.data.length < 1) return [];
-                let css = '<style>.odh-expression {font-size: 1em!important;font-weight: normal!important;}</style>';
-                let expression = data.trans_result.data[0].src;
-                let definition = data.trans_result.data[0].dst;
-                return [{ css, expression, definitions: [definition] }];
-            } catch (error) {
-                return [];
-            }
-        }
-
-        function getBDSimple(data) {
-            try {
-                let simple = data.dict_result.simple_means;
-                let expression = simple.word_name;
-                if (!expression) return [];
-
-                let symbols = simple.symbols[0];
-                let reading_uk = symbols.ph_en || '';
-                let reading_us = symbols.ph_am || '';
-                let reading = reading_uk && reading_us ? `uk[${reading_uk}] us[${reading_us}]` : '';
-
-                let audios = [];
-                audios[0] = `http://fanyi.baidu.com/gettts?lan=uk&text=${encodeURIComponent(expression)}&spd=3&source=web`;
-                audios[1] = `http://fanyi.baidu.com/gettts?lan=en&text=${encodeURIComponent(expression)}&spd=3&source=web`;
-
-                if (!symbols.parts || symbols.parts.length < 1) return [];
-                let definition = '<ul class="ec">';
-                for (const def of symbols.parts)
-                    if (def.means && def.means.length > 0) {
-                        let pos = def.part || def.part_name || '';
-                        pos = pos ? `<span class="pos simple">${pos}</span>` : '';
-                        definition += `<li class="ec">${pos}<span class="ec_chn">${def.means.join()}</span></li>`;
-                    }
-                definition += '</ul>';
-                let css = `<style>
-                ul.ec, li.ec {margin:0; padding:0;}
-                span.simple {background-color: #999!important}
-                span.pos  {text-transform:lowercase; font-size:0.9em; margin-right:5px; padding:2px 4px; color:white; background-color:#0d47a1; border-radius:3px;}
-                </style>`;
-                notes.push({ css, expression, reading, definitions: [definition], audios });
-                return notes;
-            } catch (error) {
-                return [];
-            }
         }
 
         function getCambridge(data) {
@@ -153,7 +101,7 @@ class encn_Cambridge {
                 audios[0] = `https://fanyi.baidu.com/gettts?lan=uk&text=${encodeURIComponent(expression)}&spd=3&source=web`;
                 audios[1] = `https://fanyi.baidu.com/gettts?lan=en&text=${encodeURIComponent(expression)}&spd=3&source=web`;
 
-                let entries = data.dict_result.cambridge.entry[0].data;
+                let entries = data.dict_result.cambridge.entry[0].data;  // Thay Oxford thành Cambridge
                 if (!entries) return [];
 
                 let definitions = [];
@@ -174,16 +122,6 @@ class encn_Cambridge {
                                 definition += buildDefinitionBlock(expression, pos, group.data);
                                 definitions.push(definition);
                             }
-                            if (group.tag == 'sd-g' || group.tag == 'ids-g' || group.tag == 'pvs-g') {
-                                for (const item of group.data) {
-                                    if (item.tag == 'sd') definition = `<div class="dis"><span class="eng_dis">${item.enText}</span></div>` + definition;
-                                    let defs = [];
-                                    if (item.tag == 'n-g' || item.tag == 'id-g' || item.tag == 'pv-g') defs = item.data;
-                                    if (item.tag == 'vrs' || item.tag == 'xrs') defs = item.data[0].data;
-                                    definition += buildDefinitionBlock(expression, pos, defs);
-                                }
-                                definitions.push(definition);
-                            }
                         }
                     }
                 }
@@ -193,7 +131,6 @@ class encn_Cambridge {
             } catch (error) {
                 return [];
             }
-
         }
     }
 
@@ -201,4 +138,19 @@ class encn_Cambridge {
         let css = `
             <style>
                 div.dis {font-weight: bold;margin-bottom:3px;padding:0;}
-                span.
+                span.grammar,
+                span.informal   {margin: 0 2px;color: #0d47a1;}
+                span.complement {margin: 0 2px;font-weight: bold;}
+                div.idmphrase {font-weight: bold;margin: 0;padding: 0;}
+                span.eng_dis  {margin-right: 5px;}
+                span.chn_dis  {margin: 0;padding: 0;}
+                span.pos  {text-transform:lowercase; font-size:0.9em; margin-right:5px; padding:2px 4px; color:white; background-color:#0d47a1; border-radius:3px;}
+                span.tran {margin:0; padding:0;}
+                span.eng_tran {margin-right:3px; padding:0;}
+                ul.sents {font-size:0.9em; list-style:square inside; margin:3px 0;padding:5px;background:rgba(13,71,161,0.1); border-radius:5px;}
+                li.sent  {margin:0; padding:0;}
+                span.eng_sent {margin-right:5px;}
+            </style>`;
+        return css;
+    }
+}
